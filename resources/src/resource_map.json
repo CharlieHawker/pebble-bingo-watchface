@@ -1,0 +1,11 @@
+
+{"friendlyVersion": "APP_RESOURCES",
+ "versionDefName": "APP_RESOURCES",
+ "media": [
+     {
+      "type":"png",
+      "defName":"BINGO_GRID",
+      "file":"images/grid.png"
+     }
+	  ]
+}
