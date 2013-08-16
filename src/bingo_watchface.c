@@ -1,11 +1,3 @@
-/*
-@TODO - Stop hr moving when set
-@TODO - Choose a number on screen before overwriting them
-@TODO - Do not overwrite unused numbers unless duplicated
-@TODO - Highlight active hr and minute
-@TODO - Add grid
-*/
-
 #include "pebble_os.h"
 #include "pebble_app.h"
 #include "pebble_fonts.h"
