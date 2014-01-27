@@ -1,9 +1,6 @@
-#include "pebble_os.h"
-#include "pebble_app.h"
-#include "pebble_fonts.h"
+#include <pebble.h>
 #include "bingo_cell.h"
 
-#define MY_UUID { 0x5B, 0xED, 0xD7, 0x24, 0x57, 0x4E, 0x4B, 0x3D, 0x8D, 0xCD, 0x95, 0x88, 0x9C, 0xCE, 0x63, 0xD4 }
 PBL_APP_INFO(MY_UUID,
              "Bingo Watchface", "Charlie Hawker",
              1, 0, /* App version */
@@ -26,15 +23,14 @@ int random_layer() {
 }
 
 // Called every minute
-void handle_minute_tick(AppContextRef ctx, PebbleTickEvent *tick_event)
+static void handle_minute_tick(struct tm *tick_time, TimeUnits units_changed)
 {
-  PblTm *t = tick_event->tick_time;
   int used_numbers[9]; // This will contain the grid values and keep track of what numbers have been used
 
   // Choose the layer for the hour and set it
   int hr_layer_index = random_layer();
   bingo_cells[hr_layer_index].hr_layer = true;
-  int hour = t->tm_hour;
+  int hour = tm->tm_hour;
   if ( !clock_is_24h_style() && hour > 12 ) {
     hour = hour - 12;
   }
@@ -44,8 +40,8 @@ void handle_minute_tick(AppContextRef ctx, PebbleTickEvent *tick_event)
   // Choose the layer for the minute and set it
   int min_layer_index = random_layer();
   bingo_cells[min_layer_index].min_layer = true;
-  bingo_cell_set_value(&bingo_cells[min_layer_index], t->tm_min);
-  used_numbers[1] = t->tm_min; // Add the min int to array of used integers for grid
+  bingo_cell_set_value(&bingo_cells[min_layer_index], tm->tm_min);
+  used_numbers[1] = tm->tm_min; // Add the min int to array of used integers for grid
 
   // Generate set of 7 unique random numbers
   for (int i=2;i<9;i++) { // We start from 2 because 0 and 1 contain hr and min
@@ -78,7 +74,8 @@ void handle_minute_tick(AppContextRef ctx, PebbleTickEvent *tick_event)
 
 
 void handle_init(AppContextRef ctx) {
-  window_init(&window, "Bingo");
+  window = window_create();
+
   window_stack_push(&window, true /* Animated */);
   resource_init_current_app(&APP_RESOURCES);
 
@@ -88,7 +85,8 @@ void handle_init(AppContextRef ctx) {
   layer_add_child(&window.layer, &grid_bg.layer.layer);
 
   // The text title
-  text_layer_init(&title_layer, GRect(2, 2, 140, 22));
+  title_layer = text_layer_create(GRect(2, 2, 140, 22));
+
   text_layer_set_background_color(&title_layer, GColorClear);
   text_layer_set_text_color(&title_layer, GColorWhite);
   text_layer_set_text_alignment(&title_layer, GTextAlignmentCenter);
@@ -105,24 +103,31 @@ void handle_init(AppContextRef ctx) {
     offset_y = ((i / 3) % 3) + 25;
     pos_x = ((i % 3) * 46) + offset_x;
     pos_y = (((i / 3) % 3) * 46) + offset_y;
+    bingo_cells[i] = bingo_cell_create(GPoint(pos_x, pos_y));
     bingo_cell_set_value(&bingo_cells[i], 1 + (rand() % 98));
-    bingo_cell_init(&bingo_cells[i], GPoint(pos_x, pos_y));
     layer_add_child(&grid_bg.layer.layer, &bingo_cells[i].layer.layer);
   }
 }
 
 void handle_deinit(AppContextRef ctx) {
+  // Unsubscribe from services
+  tick_timer_service_subscribe();
+
+  // De-init resources
   bmp_deinit_container(&grid_bg);
+
+  // Destroy the layers
+  text_layer_destroy(title_layer);
+  for (int i=0;i<9;++i) {
+    bingo_layer_destroy(bingo_cells[i]);
+  }
+  window_destroy(window);
 }
 
-void pbl_main(void *params) {
-  PebbleAppHandlers handlers = {
-    .init_handler = &handle_init,
-    .deinit_handler = &handle_deinit,
-    .tick_info = {
-      .tick_handler = &handle_minute_tick,
-      .tick_units = MINUTE_UNIT
-    }
-  };
-  app_event_loop(params, &handlers);
+void main(void) {
+  handle_init();
+  app_event_loop();
+  tick_timer_service_subscribe(MINUTE_UNIT, handle_minute_tick);
+  app_event_loop();
+  handle_deinit();  
 }

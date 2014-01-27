@@ -1,0 +1,21 @@
+{
+  "uuid": "5bedd724-574e-4b3d-8dcd-95889cce63d4",
+  "shortName": "Bingo Watchface",
+  "longName": "Bingo Watchface",
+  "companyName": "Charlie Hawker",
+  "versionCode": 1,
+  "versionLabel": "1.0.0",
+  "watchapp": {
+    "watchface": true
+  },
+  "appKeys": {},
+  "resources": {
+    "media": [
+      {
+        "type": "png",
+        "name": "BINGO_GRID",
+        "file": "images/grid.png"
+      }
+    ]
+  }
+}

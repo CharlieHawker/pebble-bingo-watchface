@@ -1,23 +1,24 @@
-#include "pebble_os.h"
-#include "pebble_app.h"
-#include "pebble_fonts.h"
+#include <pebble.h>
 #include "bingo_cell.h"
 
 BingoCell bingo_cell;
 
-void bingo_cell_init(BingoCell* bingo_cell, GPoint pos) {
+void bingo_cell_create(GPoint pos) {
   bingo_cell->hr_layer = false;
   bingo_cell->min_layer = false;
 
-  bitmap_layer_init(&bingo_cell->layer, GRect(pos.x, pos.y, 46, 46));
-
-  text_layer_init(&bingo_cell->text_layer, GRect(0, 5, 46, 41));
+  bingo_cell->layer = bitmap_layer_create(GRect(pos.x, pos.y, 46, 46));
+  bingo_cell->text_layer = text_layer_create(GRect(0, 5, 46, 41));
   text_layer_set_text_alignment(&bingo_cell->text_layer, GTextAlignmentCenter);
   text_layer_set_background_color(&bingo_cell->text_layer, GColorClear);
 
   layer_add_child(&bingo_cell->layer.layer, &bingo_cell->text_layer.layer);
 }
 
+void bingo_cell_destroy(BingoCell* bingo_cell) {
+  bitmap_layer_destroy(bingo_cell->layer);
+  text_layer_destroy(bingo_cell->text_layer);
+}
 
 void bingo_cell_update(BingoCell* bingo_cell) {
   text_layer_set_text(&bingo_cell->text_layer, &bingo_cell->value_string);
