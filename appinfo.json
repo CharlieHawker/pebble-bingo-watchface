@@ -13,6 +13,12 @@
     "media": [
       {
         "type": "png",
+        "name": "BINGO_MENU_ICON",
+        "file": "images/menu_icon.png",
+        "menuIcon": true
+      },
+      {
+        "type": "png",
         "name": "BINGO_GRID",
         "file": "images/grid.png"
       },
