@@ -4,7 +4,6 @@
 static Window *window;
 static BitmapLayer *grid_layer;
 static GBitmap *grid_bitmap;
-static TextLayer *title_layer;
 static BingoCell bingo_cells[9];
 
 // Pick a random layer not occupied by a time value
@@ -16,6 +15,7 @@ int random_layer() {
     return index;
   }
 }
+
 
 // Called every minute
 static void handle_minute_tick(struct tm *tick_time, TimeUnits units_changed)
@@ -35,9 +35,18 @@ static void handle_minute_tick(struct tm *tick_time, TimeUnits units_changed)
 
   // Choose the layer for the minute and set it
   int min_layer_index = random_layer();
-  bingo_cells[min_layer_index].min_layer = true;
-  bingo_cell_set_value(&bingo_cells[min_layer_index], tick_time->tm_min);
-  used_numbers[1] = tick_time->tm_min; // Add the min int to array of used integers for grid
+  int min = tick_time->tm_min;
+  if (min != 0)
+  {
+    bingo_cells[min_layer_index].min_layer = true;
+    used_numbers[1] = min; // Add the min int to array of used integers for grid
+  }
+  else
+  {
+    bingo_cells[min_layer_index].min_layer = false;
+    used_numbers[1] = 1 + (rand() % 98);
+  }
+  bingo_cell_set_value(&bingo_cells[min_layer_index], used_numbers[1]);
 
   // Generate set of 7 unique random numbers
   int instances, number;
@@ -74,53 +83,44 @@ void handle_init() {
 
   window_stack_push(window, true /* Animated */);
 
-  app_log(1, "bingo_watchface.c", 76, "%s", "The window was generated");
-
   // Get information about the root layer
   Layer *window_layer = window_get_root_layer(window);
   //GRect bounds = layer_get_frame(window_layer);
 
   // Now add the grid
-  grid_layer = bitmap_layer_create((GRect){ .origin = {1, 1}, .size = {142, 166} });
+  grid_layer = bitmap_layer_create((GRect){ .origin = {0, 0}, .size = {144, 168} });
   grid_bitmap = gbitmap_create_with_resource(RESOURCE_ID_BINGO_GRID);
   bitmap_layer_set_bitmap(grid_layer, grid_bitmap);
 
-  app_log(1, "bingo_watchface.c", 87, "%s", "The grid layer was generated");
-
-  // Add the grid layer as a child of the window layer
-  layer_add_child(window_layer, bitmap_layer_get_layer(grid_layer));
-
-  app_log(1, "bingo_watchface.c", 92, "%s", "The grid layer was assigned to the window layer");
-
   // Add the cells
-  int offset_x, offset_y, pos_x, pos_y;
+  GPoint origins[9] = {
+    (GPoint){2,26},
+    (GPoint){49,26},
+    (GPoint){96,26},
+    (GPoint){2,73},
+    (GPoint){49,73},
+    (GPoint){96,73},
+    (GPoint){2,120},
+    (GPoint){49,120},
+    (GPoint){96,120}
+  };
   for (int i=0;i<9;++i) {
-    offset_x = (i % 3) + 2;
-    offset_y = ((i / 3) % 3) + 26;
-    pos_x = ((i % 3) * 46) + offset_x;
-    pos_y = (((i / 3) % 3) * 46) + offset_y;
-
-    app_log(1, "bingo_watchface.c", 101, "%s %i %s%i %s%i", "Generating cell", i+1, "of 9 at position: x=", pos_x, "y=", pos_y);
-    bingo_cell_init(&bingo_cells[i], (GPoint){ pos_x, pos_y });
-    bingo_cell_set_value(&bingo_cells[i], 1 + (rand() % 98));    
-
-    layer_add_child(window_layer, bingo_cell_get_layer(&bingo_cells[i]));
-    app_log(1, "bingo_watchface.c", 106, "%s", "The cell was assigned to the window layer");
+    // Add a bingo cell to one of the grid origins
+    app_log(1, "bingo_watchface.c", 106, "Creating cell at: %i,%i", origins[i].x, origins[i].y);
+    bingo_cell_init(&bingo_cells[i], origins[i]);
+    layer_add_child(bitmap_layer_get_layer(grid_layer), bingo_cell_get_layer(&bingo_cells[i]));
   }
 
-  // Set the text title
-  title_layer = text_layer_create((GRect){ .origin = {2, 2}, .size = {140, 22} });
-  text_layer_set_background_color(title_layer, GColorClear);
-  text_layer_set_text_color(title_layer, GColorWhite);
-  text_layer_set_text_alignment(title_layer, GTextAlignmentCenter);
-  text_layer_set_text(title_layer, "BINGO!");
-  text_layer_set_font(title_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
-
-  // Add the title layer as a child of the window layer
-  layer_add_child(window_layer, text_layer_get_layer(title_layer));
+  // Update 2 random cells to show the time
+  time_t now = time(NULL);
+  struct tm *current_time = localtime(&now);
+  handle_minute_tick(current_time, MINUTE_UNIT);
 
   // Subscribe to the tick timer service
   tick_timer_service_subscribe(MINUTE_UNIT, handle_minute_tick);
+
+  // Add the grid layer as a child of the window layer
+  layer_add_child(window_layer, bitmap_layer_get_layer(grid_layer));
 }
 
 void handle_deinit() {
@@ -128,7 +128,6 @@ void handle_deinit() {
   tick_timer_service_unsubscribe();
 
   // Destroy the layers
-  text_layer_destroy(title_layer);
   bitmap_layer_destroy(grid_layer);
   gbitmap_destroy(grid_bitmap);
 

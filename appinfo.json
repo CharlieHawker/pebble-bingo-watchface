@@ -1,6 +1,6 @@
 {
   "uuid": "5bedd724-574e-4b3d-8dcd-95889cce63d4",
-  "shortName": "Bingo Watchface",
+  "shortName": "Bingo",
   "longName": "Bingo Watchface",
   "companyName": "Charlie Hawker",
   "versionCode": 1,
@@ -15,6 +15,16 @@
         "type": "png",
         "name": "BINGO_GRID",
         "file": "images/grid.png"
+      },
+      {
+        "type": "font",
+        "name": "OPEN_SANS_28_REGULAR",
+        "file": "fonts/OpenSans-Regular.ttf"
+      },
+      {
+        "type": "font",
+        "name": "OPEN_SANS_28_EXTRA_BOLD",
+        "file": "fonts/OpenSans-ExtraBold.ttf"
       }
     ]
   }
