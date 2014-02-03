@@ -4,7 +4,7 @@
   "longName": "Bingo Watchface",
   "companyName": "Charlie Hawker",
   "versionCode": 2,
-  "versionLabel": "2.0.1",
+  "versionLabel": "2.1.0",
   "watchapp": {
     "watchface": true
   },
