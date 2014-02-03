@@ -88,14 +88,6 @@ void handle_init() {
   // Get information about the root layer
   Layer *window_layer = window_get_root_layer(window);
 
-  // Now add the grid
-  grid_layer = bitmap_layer_create((GRect){ .origin = {0, 0}, .size = {144, 168} });
-  grid_bitmap = gbitmap_create_with_resource(RESOURCE_ID_BINGO_GRID);
-  bitmap_layer_set_bitmap(grid_layer, grid_bitmap);
-
-  // Add the grid layer as a child of the window layer
-  layer_add_child(window_layer, bitmap_layer_get_layer(grid_layer));  
-
   // Load the resources needed for bingo cells
   bingo_cells_load_resources();
 
@@ -116,6 +108,15 @@ void handle_init() {
     bingo_cell_init(&bingo_cells[i], origins[i]);
     layer_add_child(window_layer, bingo_cell_get_layer(&bingo_cells[i]));
   }
+
+  // Now add the grid above
+  grid_layer = bitmap_layer_create((GRect){ .origin = {0, 0}, .size = {144, 168} });
+  grid_bitmap = gbitmap_create_with_resource(RESOURCE_ID_BINGO_GRID_BLACK);
+  bitmap_layer_set_bitmap(grid_layer, grid_bitmap);
+  bitmap_layer_set_compositing_mode(grid_layer, GCompOpClear);
+
+  // Add the grid layer as a child of the window layer
+  layer_add_child(window_layer, bitmap_layer_get_layer(grid_layer));  
 
   // Update 2 random cells to show the time
   time_t now = time(NULL);

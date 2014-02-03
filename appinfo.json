@@ -18,7 +18,7 @@
         "menuIcon": true
       },
       {
-        "type": "png",
+        "type": "png-trans",
         "name": "BINGO_GRID",
         "file": "images/grid.png"
       },

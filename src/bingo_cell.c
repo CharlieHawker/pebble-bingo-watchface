@@ -6,7 +6,7 @@ void bingo_cell_init(BingoCell *bingo_cell, GPoint pos) {
   bingo_cell->layer = layer_create((GRect){ .origin = {pos.x, pos.y}, .size = {46, 46} });
   
   // Set the highlight layer up
-  bingo_cell->highlight_layer = bitmap_layer_create((GRect) { .origin = {0,0}, .size = {46,46} });
+  bingo_cell->highlight_layer = bitmap_layer_create((GRect) { .origin = {1,1}, .size = {44,44} });
   bitmap_layer_set_bitmap(bingo_cell->highlight_layer, cell_active_bitmap);
   bingo_cell_unhighlight(bingo_cell); // Sets defaults for hr / min layer booleans and hides highlight layer
 
