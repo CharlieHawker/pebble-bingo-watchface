@@ -1,6 +1,7 @@
 #include <pebble.h>
 #include <bingo_cell.h>
 
+// Watch face resources
 static Window *window;
 static BitmapLayer *grid_layer;
 static GBitmap *grid_bitmap;
@@ -67,9 +68,10 @@ static void handle_minute_tick(struct tm *tick_time, TimeUnits units_changed)
   int number_index = 2; // Starts from 2 as 0 and 1 are hr and min
   for (int k=0;k<9;k++) {
     if (k != hr_layer_index && k != min_layer_index) {
-      // Need to reset the hr & min layer booleans to false for these layers
-      bingo_cells[k].hr_layer = false;
-      bingo_cells[k].min_layer = false;
+      // Clear the bitmap highlight layer if this was the last hour / min layer
+      if (bingo_cells[k].hr_layer || bingo_cells[k].min_layer) {
+        bingo_cell_unhighlight(&bingo_cells[k]);
+      }
       // Now set the value for the cell to a random value
       bingo_cell_set_value(&bingo_cells[k], used_numbers[number_index]);
       number_index++;
@@ -85,12 +87,17 @@ void handle_init() {
 
   // Get information about the root layer
   Layer *window_layer = window_get_root_layer(window);
-  //GRect bounds = layer_get_frame(window_layer);
 
   // Now add the grid
   grid_layer = bitmap_layer_create((GRect){ .origin = {0, 0}, .size = {144, 168} });
   grid_bitmap = gbitmap_create_with_resource(RESOURCE_ID_BINGO_GRID);
   bitmap_layer_set_bitmap(grid_layer, grid_bitmap);
+
+  // Add the grid layer as a child of the window layer
+  layer_add_child(window_layer, bitmap_layer_get_layer(grid_layer));  
+
+  // Load the resources needed for bingo cells
+  bingo_cells_load_resources();
 
   // Add the cells
   GPoint origins[9] = {
@@ -106,9 +113,8 @@ void handle_init() {
   };
   for (int i=0;i<9;++i) {
     // Add a bingo cell to one of the grid origins
-    app_log(1, "bingo_watchface.c", 106, "Creating cell at: %i,%i", origins[i].x, origins[i].y);
     bingo_cell_init(&bingo_cells[i], origins[i]);
-    layer_add_child(bitmap_layer_get_layer(grid_layer), bingo_cell_get_layer(&bingo_cells[i]));
+    layer_add_child(window_layer, bingo_cell_get_layer(&bingo_cells[i]));
   }
 
   // Update 2 random cells to show the time
@@ -118,23 +124,22 @@ void handle_init() {
 
   // Subscribe to the tick timer service
   tick_timer_service_subscribe(MINUTE_UNIT, handle_minute_tick);
-
-  // Add the grid layer as a child of the window layer
-  layer_add_child(window_layer, bitmap_layer_get_layer(grid_layer));
 }
 
 void handle_deinit() {
   // Unsubscribe from services
   tick_timer_service_unsubscribe();
 
-  // Destroy the layers
-  bitmap_layer_destroy(grid_layer);
-  gbitmap_destroy(grid_bitmap);
-
   // Destroy the cells
-  for (int i=0;i<9;++i) {
+  for (int i=0;i<9;i++) {
     bingo_cell_destroy(&bingo_cells[i]);
   }
+
+  // Destroy the cell resources
+  bingo_cells_unload_resources();
+
+  // Destroy the grid
+  gbitmap_destroy(grid_bitmap);
 
   // Destroy the window
   window_destroy(window);
