@@ -69,7 +69,7 @@ void bingo_cell_destroy(BingoCell* bingo_cell) {
 
 void bingo_cells_load_resources() {
   bingo_font_normal = fonts_load_custom_font(resource_get_handle((RESOURCE_ID_OPEN_SANS_28_REGULAR)));
-  bingo_font_extra_bold = fonts_load_custom_font(resource_get_handle((RESOURCE_ID_OPEN_SANS_28_REGULAR)));
+  bingo_font_extra_bold = fonts_load_custom_font(resource_get_handle((RESOURCE_ID_OPEN_SANS_28_EXTRA_BOLD)));
   cell_active_bitmap = gbitmap_create_with_resource(RESOURCE_ID_CELL_ACTIVE_HIGHLIGHT);
 }
 
