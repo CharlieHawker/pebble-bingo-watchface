@@ -1,6 +1,11 @@
 #include <pebble.h>
 #include <bingo_cell.h>
 
+// Cell resources
+static GBitmap *cell_active_bitmap;
+static GFont *bingo_font_normal;
+static GFont *bingo_font_extra_bold;
+
 void bingo_cell_init(BingoCell *bingo_cell, GPoint pos) {
   // Set the parent layer up
   bingo_cell->layer = layer_create((GRect){ .origin = {pos.x, pos.y}, .size = {46, 46} });
@@ -57,16 +62,6 @@ void bingo_cell_set_value(BingoCell* bingo_cell, int value) {
   bingo_cell_update(bingo_cell);
 }
 
-Layer* bingo_cell_get_layer(BingoCell* bingo_cell) {
-  return bingo_cell->layer;
-}
-
-void bingo_cell_destroy(BingoCell* bingo_cell) {
-  bitmap_layer_destroy(bingo_cell->highlight_layer);
-  text_layer_destroy(bingo_cell->text_layer);
-  layer_destroy(bingo_cell->layer);
-}
-
 void bingo_cells_load_resources() {
   bingo_font_normal = fonts_load_custom_font(resource_get_handle((RESOURCE_ID_OPEN_SANS_28_REGULAR)));
   bingo_font_extra_bold = fonts_load_custom_font(resource_get_handle((RESOURCE_ID_OPEN_SANS_28_EXTRA_BOLD)));
@@ -74,7 +69,5 @@ void bingo_cells_load_resources() {
 }
 
 void bingo_cells_unload_resources() {
-  free(bingo_font_normal);
-  free(bingo_font_extra_bold);
   gbitmap_destroy(cell_active_bitmap);
 }

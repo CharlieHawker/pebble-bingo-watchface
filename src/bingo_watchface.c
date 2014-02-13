@@ -6,13 +6,19 @@ static Window *window;
 static BitmapLayer *grid_layer;
 static GBitmap *grid_bitmap;
 static BingoCell bingo_cells[9];
+static const GPoint origins[9] = {
+  {2,26}, {49,26}, {96,26}, {2,73}, {49,73}, {96,73}, {2,120}, {49,120}, {96,120}
+};
 
 // Pick a random layer not occupied by a time value
 int random_layer() {
   int index = rand() % 8;
-  if (bingo_cells[index].hr_layer || bingo_cells[index].min_layer) {
+  BingoCell *bingo_cell = &bingo_cells[index];
+  if (bingo_cell->hr_layer || bingo_cell->min_layer) {
+    free(bingo_cell);
     return random_layer();
   } else {
+    free(bingo_cell);
     return index;
   }
 }
@@ -21,33 +27,37 @@ int random_layer() {
 // Called every minute
 static void handle_minute_tick(struct tm *tick_time, TimeUnits units_changed)
 {
+  BingoCell *bingo_cell;
   int used_numbers[9]; // This will contain the grid values and keep track of what numbers have been used
 
   // Choose the layer for the hour and set it
   int hr_layer_index = random_layer();
-  bingo_cells[hr_layer_index].hr_layer = true;
+  bingo_cell = &bingo_cells[hr_layer_index];
+  bingo_cell->hr_layer = true;
 
-  int hour = tick_time->tm_hour;
-  if ( !clock_is_24h_style() && hour > 12 ) {
-    hour = hour - 12;
+  if ( !clock_is_24h_style() && tick_time->tm_hour > 12 ) {
+    used_numbers[0] = tick_time->tm_hour - 12;
+  } else {
+    used_numbers[0] = tick_time->tm_hour; // Add the hour int to array of used integers for grid
   }
-  bingo_cell_set_value(&bingo_cells[hr_layer_index], hour);
-  used_numbers[0] = hour; // Add the hour int to array of used integers for grid
+  bingo_cell_set_value(bingo_cell, used_numbers[0]);
 
   // Choose the layer for the minute and set it
   int min_layer_index = random_layer();
-  int min = tick_time->tm_min;
-  if (min != 0)
+  bingo_cell = &bingo_cells[min_layer_index];
+
+  // Assign the minute if not on the hour
+  if (tick_time->tm_min != 0)
   {
-    bingo_cells[min_layer_index].min_layer = true;
-    used_numbers[1] = min; // Add the min int to array of used integers for grid
+    bingo_cell->min_layer = true;
+    used_numbers[1] = tick_time->tm_min; // Add the min int to array of used integers for grid
   }
   else
   {
-    bingo_cells[min_layer_index].min_layer = false;
+    bingo_cell->min_layer = false;
     used_numbers[1] = 1 + (rand() % 98);
   }
-  bingo_cell_set_value(&bingo_cells[min_layer_index], used_numbers[1]);
+  bingo_cell_set_value(bingo_cell, used_numbers[1]);
 
   // Generate set of 7 unique random numbers
   int instances, number;
@@ -64,49 +74,38 @@ static void handle_minute_tick(struct tm *tick_time, TimeUnits units_changed)
     used_numbers[i] = number;
   }
 
-  // Now fill in the other spaces with random numbers
+  // Now fill in the other spaces with random number
   int number_index = 2; // Starts from 2 as 0 and 1 are hr and min
   for (int k=0;k<9;k++) {
     if (k != hr_layer_index && k != min_layer_index) {
       // Clear the bitmap highlight layer if this was the last hour / min layer
-      if (bingo_cells[k].hr_layer || bingo_cells[k].min_layer) {
-        bingo_cell_unhighlight(&bingo_cells[k]);
+      bingo_cell = &bingo_cells[k];
+      if (bingo_cell->hr_layer || bingo_cell->min_layer) {
+        bingo_cell_unhighlight(bingo_cell);
       }
       // Now set the value for the cell to a random value
-      bingo_cell_set_value(&bingo_cells[k], used_numbers[number_index]);
+      bingo_cell_set_value(bingo_cell, used_numbers[number_index]);
       number_index++;
     }
   }
+
+  free(bingo_cell);
 }
 
 
 void handle_init() {
-  window = window_create();
-
-  window_stack_push(window, true /* Animated */);
-
-  // Get information about the root layer
-  Layer *window_layer = window_get_root_layer(window);
-
-  // Load the resources needed for bingo cells
   bingo_cells_load_resources();
 
+  // Seed the random number generator
+  srand(time(NULL));
+  
   // Add the cells
-  GPoint origins[9] = {
-    (GPoint){2,26},
-    (GPoint){49,26},
-    (GPoint){96,26},
-    (GPoint){2,73},
-    (GPoint){49,73},
-    (GPoint){96,73},
-    (GPoint){2,120},
-    (GPoint){49,120},
-    (GPoint){96,120}
-  };
   for (int i=0;i<9;++i) {
     // Add a bingo cell to one of the grid origins
-    bingo_cell_init(&bingo_cells[i], origins[i]);
-    layer_add_child(window_layer, bingo_cell_get_layer(&bingo_cells[i]));
+    BingoCell *bingo_cell = &bingo_cells[i];
+    bingo_cell_init(bingo_cell, origins[i]);
+    layer_add_child(window_get_root_layer(window), bingo_cell->layer);
+    free(bingo_cell);
   }
 
   // Now add the grid above
@@ -116,12 +115,13 @@ void handle_init() {
   bitmap_layer_set_compositing_mode(grid_layer, GCompOpClear);
 
   // Add the grid layer as a child of the window layer
-  layer_add_child(window_layer, bitmap_layer_get_layer(grid_layer));  
+  layer_add_child(window_get_root_layer(window), bitmap_layer_get_layer(grid_layer));  
 
   // Update 2 random cells to show the time
   time_t now = time(NULL);
   struct tm *current_time = localtime(&now);
   handle_minute_tick(current_time, MINUTE_UNIT);
+  free(current_time);
 
   // Subscribe to the tick timer service
   tick_timer_service_subscribe(MINUTE_UNIT, handle_minute_tick);
@@ -133,21 +133,27 @@ void handle_deinit() {
 
   // Destroy the cells
   for (int i=0;i<9;i++) {
-    bingo_cell_destroy(&bingo_cells[i]);
+    BingoCell *bingo_cell = &bingo_cells[i];
+    bitmap_layer_destroy(bingo_cell->highlight_layer);
+    text_layer_destroy(bingo_cell->text_layer);
+    layer_destroy(bingo_cell->layer);
   }
 
-  // Destroy the cell resources
+  // Destroy the cell highlight resource
   bingo_cells_unload_resources();
 
   // Destroy the grid
+  bitmap_layer_destroy(grid_layer);
   gbitmap_destroy(grid_bitmap);
-
-  // Destroy the window
-  window_destroy(window);
 }
 
 int main(void) {
-  handle_init();
+  window = window_create();
+  window_set_window_handlers(window, (WindowHandlers) {
+    .load = handle_init,
+    .unload = handle_deinit,
+  });
+  window_stack_push(window, true /* Animated */);
   app_event_loop();
-  handle_deinit();  
+  window_destroy(window);
 }
