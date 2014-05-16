@@ -15,10 +15,8 @@ int random_layer() {
   int index = rand() % 8;
   BingoCell *bingo_cell = &bingo_cells[index];
   if (bingo_cell->hr_layer || bingo_cell->min_layer) {
-    free(bingo_cell);
     return random_layer();
   } else {
-    free(bingo_cell);
     return index;
   }
 }
@@ -88,8 +86,6 @@ static void handle_minute_tick(struct tm *tick_time, TimeUnits units_changed)
       number_index++;
     }
   }
-
-  free(bingo_cell);
 }
 
 
@@ -105,7 +101,6 @@ void handle_init() {
     BingoCell *bingo_cell = &bingo_cells[i];
     bingo_cell_init(bingo_cell, origins[i]);
     layer_add_child(window_get_root_layer(window), bingo_cell->layer);
-    free(bingo_cell);
   }
 
   // Now add the grid above
