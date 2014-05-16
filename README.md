@@ -3,7 +3,7 @@ Pebble Bingo Watchface
 
 My first forays into Pebble development have resulted in this. Think of it what you will, but I'm mighty proud, as I'm not a C developer.
 
-Now updated to work with Pebble SDK 2.0. Soon to be found on Pebble App Store.
+Now updated to work with Pebble SDK 2.1. Available in the Pebble App Store.
 
 Description
 -----------
